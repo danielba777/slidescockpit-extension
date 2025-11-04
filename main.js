@@ -191,6 +191,27 @@
     return UTIL.checkNested(obj[level], ...rest);
   };
 
+  UTIL.normalizeTikTokUrl = (href) => {
+    if (!href || typeof href !== "string") {
+      return null;
+    }
+
+    const trimmed = href.trim();
+    if (!trimmed.length) {
+      return null;
+    }
+
+    try {
+      return new URL(
+        trimmed,
+        trimmed.startsWith("http") ? undefined : window.location.origin
+      ).href;
+    } catch (error) {
+      pipe("⚠️ Failed to normalize TikTok URL", { href: trimmed, error });
+      return null;
+    }
+  };
+
   /**
    * Traverses an object for a key, then gets that value
    *
@@ -765,9 +786,20 @@
       const anchors = element.querySelectorAll("a[href]");
 
       for (let i = 0; i < anchors.length; i++) {
-        const matches = EXPR.vanillaVideoUrl(
-          decodeURIComponent(anchors[i].getAttribute("href"))
-        );
+        const rawHref = anchors[i].getAttribute("href");
+        const normalized = UTIL.normalizeTikTokUrl(rawHref);
+        if (!normalized) {
+          continue;
+        }
+
+        let decodedHref = normalized;
+        try {
+          decodedHref = decodeURIComponent(normalized);
+        } catch (error) {
+          pipe("⚠️ Failed to decode URL", { normalized, error });
+        }
+
+        const matches = EXPR.vanillaVideoUrl(decodedHref);
 
         /** If any matches */
         if (matches) {
@@ -1877,11 +1909,49 @@
      user: videoData.user,
    });
 
-    if (videoData.isSlideshow) {
-      const normalizedUrl = videoData.postUrl
-        ? videoData.postUrl
-        : window.location.href;
+    const slideshowLikePost =
+      videoData.isSlideshow ||
+      (videoData.postUrl && videoData.postUrl.includes("/photo/"));
+
+    if (slideshowLikePost) {
+      let normalizedUrl = UTIL.normalizeTikTokUrl(videoData.postUrl);
+
+      if (!normalizedUrl && videoData.user && videoData.videoApiId) {
+        const username = videoData.user.replace(/^@/, "");
+        normalizedUrl =
+          UTIL.normalizeTikTokUrl(
+            `/@${username}/photo/${videoData.videoApiId}`
+          ) ||
+          UTIL.normalizeTikTokUrl(
+            `/@${username}/video/${videoData.videoApiId}`
+          );
+      }
+
+      if (!normalizedUrl) {
+        const locationMatch = EXPR.vanillaVideoUrl(window.location.href);
+        if (locationMatch) {
+          const [, username, mediaId] = locationMatch;
+          normalizedUrl = window.location.href;
+          if (!videoData.user) videoData.user = username;
+          if (!videoData.videoApiId) videoData.videoApiId = mediaId;
+          if (!videoData.id) videoData.id = mediaId;
+        }
+      }
+
+      if (!normalizedUrl) {
+        pipe("⚠️ downloadHook - Unable to resolve slideshow URL", {
+          videoData,
+        });
+        button.dataset.postUrl = "";
+        return;
+      }
+
       button.dataset.postUrl = normalizedUrl;
+      videoData.postUrl = normalizedUrl;
+      if (!videoData.isSlideshow && normalizedUrl.includes("/photo/")) {
+        videoData.isSlideshow = true;
+        videoData.mediaType = videoData.mediaType || "slideshow";
+      }
     }
 
     const videoIdentifier = videoData.id ? videoData.id : Date.now();
@@ -1915,7 +1985,19 @@
 			e.preventDefault();
 			button.classList.add("loading");
 
-			const postUrl = button.dataset.postUrl || window.location.href;
+			const postUrl = button.dataset.postUrl;
+
+			if (!postUrl) {
+				pipe("⚠️ Slideshow import aborted - missing post URL", {
+					videoData,
+				});
+				SPLASH.message("✘ Slideshow-Link konnte nicht ermittelt werden", {
+					duration: 4000,
+					state: 3,
+				});
+				button.classList.remove("loading");
+				return;
+			}
 
 			try {
 				const response = await new Promise((resolve, reject) => {
@@ -2078,6 +2160,108 @@
           );
           if (slides.length) {
             videoData.slideCount = slides.length;
+          }
+        }
+      }
+
+      if (!videoData.postUrl) {
+        const slideshowLink = item.querySelector(
+          'a[href*="/@"][href*="/photo/"]'
+        );
+
+        const candidateElements = [
+          slideshowLink,
+          slideshowLink?.closest("a"),
+          item.querySelector('a[href*="/@"][href*="/video/"]'),
+          linkContainer?.querySelector('a[href*="/@"][href*="/photo/"]'),
+          linkContainer?.querySelector('a[href*="/@"][href*="/video/"]'),
+        ].filter(Boolean);
+
+        let rawCandidate = null;
+        let matchingAnchor = null;
+        for (const element of candidateElements) {
+          const potential =
+            element.getAttribute("href") ||
+            element.getAttribute("data-href") ||
+            element.href;
+          if (potential) {
+            rawCandidate = potential;
+            matchingAnchor = element;
+            break;
+          }
+        }
+
+        if (!rawCandidate) {
+          const inputCandidate =
+            item.querySelector('input[value*="/@"][value*="/photo/"]') ||
+            linkContainer?.querySelector('input[value*="/@"][value*="/photo/"]');
+          if (inputCandidate) {
+            rawCandidate =
+              inputCandidate.getAttribute("value") || inputCandidate.value;
+          }
+        }
+
+        const normalizedCandidate = UTIL.normalizeTikTokUrl(rawCandidate);
+        if (normalizedCandidate) {
+          let finalUrl = normalizedCandidate;
+
+          if (matchingAnchor) {
+            try {
+              const url = new URL(normalizedCandidate);
+              const pathSegments = url.pathname.split("/").filter(Boolean);
+              const postId = pathSegments.pop();
+              if (postId && /\d+/.test(postId)) {
+                const slug = postId.slice(0, 8);
+                const slugLink = matchingAnchor.querySelector(
+                  `a[href*="${slug}"]`
+                );
+                if (slugLink?.href) {
+                  finalUrl = UTIL.normalizeTikTokUrl(slugLink.href) || finalUrl;
+                }
+              }
+            } catch (error) {
+              pipe("⚠️ Failed to inspect slug container", {
+                anchor: matchingAnchor.outerHTML,
+                error,
+              });
+            }
+          }
+
+          videoData.postUrl = finalUrl;
+          if (finalUrl.includes("/photo/")) {
+            videoData.isSlideshow = true;
+            videoData.mediaType = "slideshow";
+          }
+          const matches = EXPR.vanillaVideoUrl(finalUrl);
+          if (matches) {
+            const [, username, mediaId] = matches;
+            if (!videoData.user) {
+              videoData.user = username;
+            }
+            if (!videoData.videoApiId) {
+              videoData.videoApiId = mediaId;
+            }
+            if (!videoData.id) {
+              videoData.id = mediaId;
+            }
+          }
+
+          if (!videoData.postUrl && slideshowLink?.href) {
+            const fallbackUrl = UTIL.normalizeTikTokUrl(slideshowLink.href);
+            if (fallbackUrl) {
+              videoData.postUrl = fallbackUrl;
+              if (fallbackUrl.includes("/photo/")) {
+                videoData.isSlideshow = true;
+                videoData.mediaType = "slideshow";
+              }
+              const fallbackMatches = EXPR.vanillaVideoUrl(fallbackUrl);
+              if (fallbackMatches) {
+                const [, fbUser, fbId] = fallbackMatches;
+                videoData.user = fbUser;
+                videoData.videoApiId = fbId;
+                videoData.id = fbId;
+              }
+            }
           }
         }
       }
