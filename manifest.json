@@ -41,6 +41,7 @@
     "*://*.tiktok.com/*",
     "https://tiktok.com/*",
     "https://*.tiktokcdn.com/*",
-    "https://*.tiktokv.com/*"
+    "https://*.tiktokv.com/*",
+    "https://slidescockpit.com/*"
   ]
 }

@@ -1868,14 +1868,21 @@
     return filename.length >= 5 ? filename : null;
   };
 
-  const downloadHook = async (button, videoData) => {
-    pipe("🪝 downloadHook called with:", {
-      isSlideshow: videoData.isSlideshow,
-      hasUrl: !!videoData.url,
-      mediaType: videoData.mediaType,
-      id: videoData.id,
-      user: videoData.user,
-    });
+ const downloadHook = async (button, videoData) => {
+   pipe("🪝 downloadHook called with:", {
+     isSlideshow: videoData.isSlideshow,
+     hasUrl: !!videoData.url,
+     mediaType: videoData.mediaType,
+     id: videoData.id,
+     user: videoData.user,
+   });
+
+    if (videoData.isSlideshow) {
+      const normalizedUrl = videoData.postUrl
+        ? videoData.postUrl
+        : window.location.href;
+      button.dataset.postUrl = normalizedUrl;
+    }
 
     const videoIdentifier = videoData.id ? videoData.id : Date.now();
     let fileName = `${
@@ -1901,120 +1908,60 @@
 
       button.classList.add("ttdb__button_slideshow");
       button.setAttribute("data-slideshow", "true");
-
-      if (!button.hasListener) {
-        button.addEventListener("click", (e) => {
-          e.preventDefault();
-          SPLASH.message("📸 Slideshow erkannt - Download wird vorbereitet", {
-            duration: 2500,
-            state: 2,
-          });
-        });
-        button.hasListener = true;
-      }
-
-      return button;
     }
 
-    if (!button.hasListener) {
-      button.addEventListener("click", async (e) => {
-        e.preventDefault();
+	if (!button.hasListener) {
+		button.addEventListener("click", async (e) => {
+			e.preventDefault();
+			button.classList.add("loading");
 
-        if (button.classList.contains("loading")) {
-          return false; // Download is already in progress
-        } else {
-          button.classList.add("loading"); // Set loading state
-        }
+			const postUrl = button.dataset.postUrl || window.location.href;
 
-        const attrFilename = button.getAttribute("filename") || null;
-        const attrApiId = button.getAttribute("video-id") || null;
-        const attrUrl = button.getAttribute("href") || null;
+			try {
+				const response = await new Promise((resolve, reject) => {
+					chrome.runtime.sendMessage(
+						{
+							task: "fetch",
+							url: "https://slidescockpit.com/api/apify/from-url",
+							options: {
+								method: "POST",
+								headers: {
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({ url: postUrl }),
+							},
+						},
+						(reply) => {
+							if (chrome.runtime.lastError) {
+								reject(chrome.runtime.lastError);
+								return;
+							}
+							resolve(reply);
+						}
+					);
+				});
 
-        let nameTemplate = await getStoredSetting("download-naming-template");
+				if (response?.error) {
+					throw response.error;
+				}
 
-        if (
-          !(
-            typeof nameTemplate === "string" || nameTemplate instanceof String
-          ) ||
-          nameTemplate.length < 1
-        ) {
-          nameTemplate = false;
-        } else {
-          nameTemplate = nameTemplate.trim();
-        }
+				SPLASH.message("📸 Slideshow import gestartet", {
+					duration: 2500,
+					state: 1,
+				});
+			} catch (error) {
+				console.error("Failed to send slideshow import request", error);
+				SPLASH.message("✘ Slideshow konnte nicht importiert werden", {
+					duration: 4000,
+					state: 3,
+				});
+			} finally {
+				button.classList.remove("loading");
+			}
+		});
 
-        const usageData = {
-          videoUrl: attrUrl,
-          filename: attrFilename,
-        };
-
-        await getWebApiData({
-          ...videoData,
-          ...{
-            videoApiId: attrApiId,
-          },
-        })
-          .then(async (webData) => {
-            if (webData.video && webData.video.playAddr) {
-              usageData.videoUrl = webData.video.playAddr;
-
-              if (nameTemplate) {
-                usageData.filename = getFileNameTemplate(
-                  videoData,
-                  webData,
-                  nameTemplate
-                );
-              }
-              pipe("Web API data was found:", { response: webData });
-            }
-          })
-          .catch(async (error) => {
-            pipe(
-              `Failed to get web API data (${error}) - trying mobile API instead.`
-            );
-
-            await API.getVideoData(attrApiId)
-              .then(async (res) => {
-                const templated = getFileNameTemplate(
-                  { ...res, ...{ videoId: attrApiId } },
-                  res.apiFullResponse,
-                  nameTemplate
-                );
-
-                if (res.url) {
-                  usageData.videoUrl = res.url;
-                  usageData.filename = templated
-                    ? templated
-                    : `${
-                        res.user ? res.user + " - " : ""
-                      }${res.description.trim()}.mp4`;
-                  pipe("Mobile API data was found.", res);
-                }
-              })
-              .catch((_) => {
-                pipe("Failed to get API data.");
-              });
-          })
-          .finally((_) => {
-            if (!usageData.filename) {
-              usageData.filename = attrFilename;
-            }
-          });
-
-        if (!usageData.videoUrl) {
-          SPLASH.message("✘ No video URL was found for download.", {
-            duration: 5000,
-            state: 3,
-          });
-          return;
-        }
-
-        pipe("Attempting to download using data: ", usageData);
-        downloadFile(usageData.videoUrl, usageData.filename, button);
-      });
-
-      button.hasListener = true;
-    }
+		button.hasListener = true;
+	}
 
     /** Download data has been set, make element interactable again */
     DOM.setStyle(button, {
@@ -2088,10 +2035,10 @@
       );
     }
 
-    if (
-      linkContainer &&
-      !window.location.pathname.match(/\/photo\/\d+$/)
-    ) {
+	if (
+		linkContainer &&
+		!window.location.pathname.match(/\/(photo|video)\/\d+$/)
+	) {
       // Mark container as handled (download hook as been set up)
       item.setAttribute("is-downloadable", "true");
 
@@ -2135,25 +2082,26 @@
         }
       }
 
-      if (!videoData || !videoData.id) {
-        const urlMatches = EXPR.vanillaVideoUrl(window.location.href, {
-          strict: true,
-        });
+	if (!videoData || !videoData.id) {
+		const urlMatches = EXPR.vanillaVideoUrl(window.location.href, {
+			strict: true,
+		});
 
-        if (urlMatches) {
-          const [, username, mediaId] = urlMatches;
-          videoData = {
-            ...videoData,
-            id: mediaId,
-            videoApiId: mediaId,
-            user: videoData?.user || username,
-            isSlideshow: window.location.href.includes("/photo/"),
-            mediaType: window.location.href.includes("/photo/")
-              ? "slideshow"
-              : videoData?.mediaType || "video",
-          };
-        }
-      }
+		if (urlMatches) {
+			const [, username, mediaId] = urlMatches;
+			videoData = {
+				...videoData,
+				id: mediaId,
+				videoApiId: mediaId,
+				user: videoData?.user || username,
+				isSlideshow: window.location.href.includes("/photo/"),
+				mediaType: window.location.href.includes("/photo/")
+					? "slideshow"
+					: videoData?.mediaType || "video",
+				postUrl: window.location.href,
+			};
+		}
+	}
 
       if (usedFallback) {
         linkContainer.appendChild(buttonWrapper);
@@ -2203,61 +2151,60 @@
     return false;
   };
 
-  itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
-    item.setAttribute("is-downloadable", "true");
+itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
+	// Check if this is a slideshow by looking at the link
+	const link = item.querySelector('a[href*="/photo/"]');
+	const isSlideshow = !!link;
 
-    // Create download button
-    const button = createButton.GRID();
+	if (!isSlideshow) {
+		return false;
+	}
 
-    // Check if this is a slideshow by looking at the link
-    const link = item.querySelector('a[href*="/photo/"]');
-    const isSlideshow = !!link;
+	item.setAttribute("is-downloadable", "true");
 
-    const setButton = (videoData, button) => {
-      pipe("Found video data:", videoData);
+	// Create download button
+	const button = createButton.GRID();
+	const rawLink = link?.getAttribute("href") || link?.href || "";
+	let slideshowUrl = null;
 
-      // Valid video URL — set download data
-      if ((videoData.url || videoData.isSlideshow) && !button.ttIsProcessed) {
-        downloadHook(button, videoData);
-        button.ttIsProcessed = true;
-      }
-    };
+	if (rawLink) {
+		try {
+			slideshowUrl = new URL(
+				rawLink,
+				rawLink.startsWith("http") ? undefined : window.location.origin
+			).href;
+		} catch (error) {
+			pipe("⚠️ GRID mode - Failed to normalise URL", { rawLink, error });
+		}
+	}
 
-    item.addEventListener("mouseleave", () => {
-      // Clear any active timers on `mouseleave`
-      clearInterval(TTDB.timers.gridAwaitVideoData);
-    });
+	const setButton = (videoData, button) => {
+		if (!videoData.isSlideshow || button.ttIsProcessed) {
+			return;
+		}
 
-    item.addEventListener("mouseenter", () => {
-      if (!button.ttIsProcessed) {
-        clearInterval(TTDB.timers.gridAwaitVideoData);
+		if (slideshowUrl && !videoData.postUrl) {
+			videoData.postUrl = slideshowUrl;
+		}
 
-        let videoData = itemData.get(item, data);
+		downloadHook(button, videoData);
+		button.ttIsProcessed = true;
+	};
 
-        // If link indicates slideshow, mark it as such
-        if (isSlideshow && !videoData.isSlideshow) {
-          videoData.isSlideshow = true;
-          videoData.mediaType = "slideshow";
-        }
+	item.addEventListener("mouseenter", () => {
+		if (button.ttIsProcessed) {
+			return;
+		}
 
-        // No URL was found on the initial attempt
-        if (!videoData.url && !videoData.isSlideshow) {
-          // Check for existing video URLs
-          TTDB.timers.gridAwaitVideoData = setInterval(() => {
-            videoData = itemData.get(item, data);
+		let videoData = itemData.get(item, data);
 
-            // We have a valid video URL — set download data and clear interval
-            if (videoData.url || videoData.isSlideshow) {
-              setButton(videoData, button);
-              clearInterval(TTDB.timers.gridAwaitVideoData);
-            }
-          }, 100);
-        } else {
-          // We have a valid video URL — set download data
-          setButton(videoData, button);
-        }
-      }
-    });
+		if (!videoData.isSlideshow) {
+			videoData.isSlideshow = true;
+			videoData.mediaType = "slideshow";
+		}
+
+		setButton(videoData, button);
+	});
 
     DOM.setStyle(item, { position: "relative" });
     item.appendChild(button);
@@ -2281,13 +2228,28 @@
     // Also check for photo links in the item
     const hasPhotoLink = item.querySelector('a[href*="/photo/"]');
 
-    if (videoPreview || slideshowPreview || hasPhotoLink) {
-      if (!feedGetActionBar(item, data)) {
-        return;
-      }
+	if (videoPreview || slideshowPreview || hasPhotoLink) {
+		if (!feedGetActionBar(item, data)) {
+			return;
+		}
 
-      const videoData = itemData.get(item, data);
-      const button = createButton.FEED();
+		const videoData = itemData.get(item, data);
+		const feedLink = item.querySelector('a[href*="/photo/"]');
+		if (!videoData.postUrl && feedLink) {
+			const rawHref = feedLink.getAttribute("href") || feedLink.href || "";
+			try {
+				videoData.postUrl = new URL(
+					rawHref,
+					rawHref.startsWith("http") ? undefined : window.location.origin
+				).href;
+			} catch (error) {
+				pipe("⚠️ FEED mode - Failed to normalise URL", {
+					rawHref,
+					error,
+				});
+			}
+		}
+		const button = createButton.FEED();
 
       if ((videoData.url || videoData.isSlideshow) && !button.ttIsProcessed) {
         const feedId = feedExtractVideoId(item);
@@ -2360,50 +2322,77 @@
         )}px`,
       });
 
-      const videoData = itemData.get(item, data);
+		const videoData = itemData.get(item, data);
+		if (!videoData.postUrl) {
+			videoData.postUrl = window.location.href;
+		}
 
-      if ((videoData.url || videoData.isSlideshow) && !button.ttIsProcessed) {
-        button.parentNode.style.display = "inherit";
-        setTimeout(() => (button.style.opacity = "1"), 50);
-        downloadHook(button, videoData);
-        button.ttIsProcessed = true;
-      }
+		if (!videoData.isSlideshow) {
+			pipe("⏭️ BASIC_PLAYER mode - skipping non-slideshow media");
+			button.parentNode?.parentNode?.removeChild(button.parentNode);
+			item.removeAttribute("is-downloadable");
+			return;
+		}
+
+		if (!button.ttIsProcessed) {
+			button.parentNode.style.display = "inherit";
+			setTimeout(() => (button.style.opacity = "1"), 50);
+			downloadHook(button, videoData);
+			button.ttIsProcessed = true;
+		}
     }
   };
 
-  itemSetup.setters[TTDB.MODE.SHARE_OVERLAY] = (item, _) => {
-    const input = item.querySelector(
-      'input[value*="/video/"], input[value*="/photo/"]'
-    );
-    item.setAttribute("is-downloadable", "true");
+itemSetup.setters[TTDB.MODE.SHARE_OVERLAY] = (item, _) => {
+  const input = item.querySelector('input[value*="/photo/"]');
+  if (!input) {
+    return false;
+  }
 
-    if (!input) return;
+  const rawValue = input.getAttribute("value") || "";
+  const matches = EXPR.vanillaVideoUrl(rawValue, { strict: true });
 
-    const rawValue = input.getAttribute("value") || "";
-    const matches = EXPR.vanillaVideoUrl(rawValue);
+  if (!matches) {
+    return false;
+  }
 
-    if (matches) {
-      const [, username, videoId] = matches;
-      let button = createButton.BASIC_PLAYER();
+  item.setAttribute("is-downloadable", "true");
 
-      item.prepend(button);
+  const [, username, videoId] = matches;
+  let button = createButton.BASIC_PLAYER();
 
-      button.classList.add("share");
-      button = button.querySelector("a");
-      button.parentNode.style.display = "block";
+  item.prepend(button);
 
-      setTimeout(() => (button.style.opacity = "1"), 50);
+  button.classList.add("share");
+  button = button.querySelector("a");
+  button.parentNode.style.display = "block";
 
-      downloadHook(button, {
-        id: videoId,
-        videoApiId: videoId,
-        user: username,
-        url: "",
-        isSlideshow: rawValue.includes("/photo/"),
-        mediaType: rawValue.includes("/photo/") ? "slideshow" : "video",
+  setTimeout(() => (button.style.opacity = "1"), 50);
+
+  let normalizedUrl = rawValue;
+  if (normalizedUrl && !normalizedUrl.startsWith("http")) {
+    try {
+      normalizedUrl = new URL(normalizedUrl, window.location.origin).href;
+    } catch (error) {
+      pipe("⚠️ SHARE_OVERLAY - Failed to normalise URL", {
+        rawValue,
+        error,
       });
     }
-  };
+  }
+
+  downloadHook(button, {
+    id: videoId,
+    videoApiId: videoId,
+    user: username,
+    url: "",
+    isSlideshow: true,
+    mediaType: "slideshow",
+    postUrl: normalizedUrl || window.location.href,
+  });
+
+  return true;
+};
 
   /**
    * Set up item (get data, create download button and hooks)

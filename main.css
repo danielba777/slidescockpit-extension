@@ -93,6 +93,7 @@ a.ttdb__button_feed {
   -webkit-flex-direction: column;
   -ms-flex-direction: column;
   flex-direction: column;
+  display: none;
 }
 
 a.ttdb__button_feed:hover {
