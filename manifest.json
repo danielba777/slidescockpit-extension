@@ -1,0 +1,46 @@
+{
+  "name": "SlidesCockpit - Slideshow Saver",
+  "description": "One Click Saving Slideshows to your SlidesCockpit Account",
+  "author": "emy",
+  "manifest_version": 3,
+  "version": "1.2.2",
+  "homepage_url": "https://slidescockpit.com",
+  "icons": {
+    "48": "48.png",
+    "128": "128.png"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "service.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://tiktok.com/*", "https://www.tiktok.com/*"],
+      "js": ["main.js"],
+      "css": ["main.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "ruleset.json"
+      }
+    ]
+  },
+  "permissions": [
+    "downloads",
+    "storage",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "host_permissions": [
+    "*://*.tiktok.com/*",
+    "https://tiktok.com/*",
+    "https://*.tiktokcdn.com/*",
+    "https://*.tiktokv.com/*"
+  ]
+}
