@@ -1118,10 +1118,15 @@
     /** Browser items (full-view items) */
     BROWSER: () => {
       /** Create download button */
-      return DOM.createButton({
+      const button = DOM.createButton({
         content: ["textContent", "+"],
         class: "ttdb__button_browser",
       });
+
+      button.dataset.originalLabel = "+";
+      button.dataset.confirmedLabel = "✓";
+
+      return button;
     },
     /** Feed items */
     FEED: () => {
@@ -1900,14 +1905,45 @@
     return filename.length >= 5 ? filename : null;
   };
 
- const downloadHook = async (button, videoData) => {
-   pipe("🪝 downloadHook called with:", {
-     isSlideshow: videoData.isSlideshow,
-     hasUrl: !!videoData.url,
-     mediaType: videoData.mediaType,
-     id: videoData.id,
-     user: videoData.user,
-   });
+  const downloadHook = async (button, videoData) => {
+    pipe("🪝 downloadHook called with:", {
+      isSlideshow: videoData.isSlideshow,
+      hasUrl: !!videoData.url,
+      mediaType: videoData.mediaType,
+      id: videoData.id,
+      user: videoData.user,
+    });
+
+    const isBrowserButton = button.classList.contains("ttdb__button_browser");
+    const getBrowserButtonLabelElement = () => {
+      const firstElement = button.firstElementChild;
+      return firstElement instanceof Element ? firstElement : null;
+    };
+    const applyBrowserButtonLabel = (label) => {
+      if (!isBrowserButton || typeof label === "undefined") {
+        return;
+      }
+
+      const labelElement = getBrowserButtonLabelElement();
+      if (labelElement) {
+        labelElement.textContent = label;
+      } else {
+        button.textContent = label;
+      }
+    };
+
+    if (isBrowserButton) {
+      if (!button.dataset.originalLabel) {
+        const labelElement = getBrowserButtonLabelElement();
+        const current =
+          (labelElement ? labelElement.textContent : button.textContent) || "";
+        button.dataset.originalLabel = current.trim() || "+";
+      }
+
+      if (!button.dataset.confirmedLabel) {
+        button.dataset.confirmedLabel = "✓";
+      }
+    }
 
     const slideshowLikePost =
       videoData.isSlideshow ||
@@ -1980,70 +2016,72 @@
       button.setAttribute("data-slideshow", "true");
     }
 
-	if (!button.hasListener) {
-		button.addEventListener("click", async (e) => {
-			e.preventDefault();
-			button.classList.add("loading");
+    if (!button.hasListener) {
+      button.addEventListener("click", async (e) => {
+        e.preventDefault();
+        button.classList.add("loading");
 
-			const postUrl = button.dataset.postUrl;
+        const postUrl = button.dataset.postUrl;
 
-			if (!postUrl) {
-				pipe("⚠️ Slideshow import aborted - missing post URL", {
-					videoData,
-				});
-				SPLASH.message("✘ Slideshow-Link konnte nicht ermittelt werden", {
-					duration: 4000,
-					state: 3,
-				});
-				button.classList.remove("loading");
-				return;
-			}
+        if (!postUrl) {
+          pipe("⚠️ Slideshow import aborted - missing post URL", {
+            videoData,
+          });
+          SPLASH.message("✘ Unable to retrieve slideshow link", {
+            duration: 4000,
+            state: 3,
+          });
+          button.classList.remove("loading");
+          return;
+        }
 
-			try {
-				const response = await new Promise((resolve, reject) => {
-					chrome.runtime.sendMessage(
-						{
-							task: "fetch",
-							url: "https://slidescockpit.com/api/apify/from-url",
-							options: {
-								method: "POST",
-								headers: {
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({ url: postUrl }),
-							},
-						},
-						(reply) => {
-							if (chrome.runtime.lastError) {
-								reject(chrome.runtime.lastError);
-								return;
-							}
-							resolve(reply);
-						}
-					);
-				});
+        try {
+          const response = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(
+              {
+                task: "fetch",
+                url: "https://slidescockpit.com/api/apify/from-url",
+                options: {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ url: postUrl }),
+                },
+              },
+              (reply) => {
+                if (chrome.runtime.lastError) {
+                  reject(chrome.runtime.lastError);
+                  return;
+                }
+                resolve(reply);
+              }
+            );
+          });
 
-				if (response?.error) {
-					throw response.error;
-				}
+          if (response?.error) {
+            throw response.error;
+          }
 
-				SPLASH.message("📸 Slideshow import gestartet", {
-					duration: 2500,
-					state: 1,
-				});
-			} catch (error) {
-				console.error("Failed to send slideshow import request", error);
-				SPLASH.message("✘ Slideshow konnte nicht importiert werden", {
-					duration: 4000,
-					state: 3,
-				});
-			} finally {
-				button.classList.remove("loading");
-			}
-		});
+          SPLASH.message("📸 Slideshow imported", {
+            duration: 2500,
+            state: 1,
+          });
+          applyBrowserButtonLabel(button.dataset.confirmedLabel || "✓");
+        } catch (error) {
+          console.error("Failed to send slideshow import request", error);
+          SPLASH.message("✘ Slideshow import failed", {
+            duration: 4000,
+            state: 3,
+          });
+          applyBrowserButtonLabel(button.dataset.originalLabel || "+");
+        } finally {
+          button.classList.remove("loading");
+        }
+      });
 
-		button.hasListener = true;
-	}
+      button.hasListener = true;
+    }
 
     /** Download data has been set, make element interactable again */
     DOM.setStyle(button, {
@@ -2117,10 +2155,10 @@
       );
     }
 
-	if (
-		linkContainer &&
-		!window.location.pathname.match(/\/(photo|video)\/\d+$/)
-	) {
+    if (
+      linkContainer &&
+      !window.location.pathname.match(/\/(photo|video)\/\d+$/)
+    ) {
       // Mark container as handled (download hook as been set up)
       item.setAttribute("is-downloadable", "true");
 
@@ -2194,7 +2232,9 @@
         if (!rawCandidate) {
           const inputCandidate =
             item.querySelector('input[value*="/@"][value*="/photo/"]') ||
-            linkContainer?.querySelector('input[value*="/@"][value*="/photo/"]');
+            linkContainer?.querySelector(
+              'input[value*="/@"][value*="/photo/"]'
+            );
           if (inputCandidate) {
             rawCandidate =
               inputCandidate.getAttribute("value") || inputCandidate.value;
@@ -2266,26 +2306,26 @@
         }
       }
 
-	if (!videoData || !videoData.id) {
-		const urlMatches = EXPR.vanillaVideoUrl(window.location.href, {
-			strict: true,
-		});
+      if (!videoData || !videoData.id) {
+        const urlMatches = EXPR.vanillaVideoUrl(window.location.href, {
+          strict: true,
+        });
 
-		if (urlMatches) {
-			const [, username, mediaId] = urlMatches;
-			videoData = {
-				...videoData,
-				id: mediaId,
-				videoApiId: mediaId,
-				user: videoData?.user || username,
-				isSlideshow: window.location.href.includes("/photo/"),
-				mediaType: window.location.href.includes("/photo/")
-					? "slideshow"
-					: videoData?.mediaType || "video",
-				postUrl: window.location.href,
-			};
-		}
-	}
+        if (urlMatches) {
+          const [, username, mediaId] = urlMatches;
+          videoData = {
+            ...videoData,
+            id: mediaId,
+            videoApiId: mediaId,
+            user: videoData?.user || username,
+            isSlideshow: window.location.href.includes("/photo/"),
+            mediaType: window.location.href.includes("/photo/")
+              ? "slideshow"
+              : videoData?.mediaType || "video",
+            postUrl: window.location.href,
+          };
+        }
+      }
 
       if (usedFallback) {
         linkContainer.appendChild(buttonWrapper);
@@ -2335,60 +2375,60 @@
     return false;
   };
 
-itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
-	// Check if this is a slideshow by looking at the link
-	const link = item.querySelector('a[href*="/photo/"]');
-	const isSlideshow = !!link;
+  itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
+    // Check if this is a slideshow by looking at the link
+    const link = item.querySelector('a[href*="/photo/"]');
+    const isSlideshow = !!link;
 
-	if (!isSlideshow) {
-		return false;
-	}
+    if (!isSlideshow) {
+      return false;
+    }
 
-	item.setAttribute("is-downloadable", "true");
+    item.setAttribute("is-downloadable", "true");
 
-	// Create download button
-	const button = createButton.GRID();
-	const rawLink = link?.getAttribute("href") || link?.href || "";
-	let slideshowUrl = null;
+    // Create download button
+    const button = createButton.GRID();
+    const rawLink = link?.getAttribute("href") || link?.href || "";
+    let slideshowUrl = null;
 
-	if (rawLink) {
-		try {
-			slideshowUrl = new URL(
-				rawLink,
-				rawLink.startsWith("http") ? undefined : window.location.origin
-			).href;
-		} catch (error) {
-			pipe("⚠️ GRID mode - Failed to normalise URL", { rawLink, error });
-		}
-	}
+    if (rawLink) {
+      try {
+        slideshowUrl = new URL(
+          rawLink,
+          rawLink.startsWith("http") ? undefined : window.location.origin
+        ).href;
+      } catch (error) {
+        pipe("⚠️ GRID mode - Failed to normalise URL", { rawLink, error });
+      }
+    }
 
-	const setButton = (videoData, button) => {
-		if (!videoData.isSlideshow || button.ttIsProcessed) {
-			return;
-		}
+    const setButton = (videoData, button) => {
+      if (!videoData.isSlideshow || button.ttIsProcessed) {
+        return;
+      }
 
-		if (slideshowUrl && !videoData.postUrl) {
-			videoData.postUrl = slideshowUrl;
-		}
+      if (slideshowUrl && !videoData.postUrl) {
+        videoData.postUrl = slideshowUrl;
+      }
 
-		downloadHook(button, videoData);
-		button.ttIsProcessed = true;
-	};
+      downloadHook(button, videoData);
+      button.ttIsProcessed = true;
+    };
 
-	item.addEventListener("mouseenter", () => {
-		if (button.ttIsProcessed) {
-			return;
-		}
+    item.addEventListener("mouseenter", () => {
+      if (button.ttIsProcessed) {
+        return;
+      }
 
-		let videoData = itemData.get(item, data);
+      let videoData = itemData.get(item, data);
 
-		if (!videoData.isSlideshow) {
-			videoData.isSlideshow = true;
-			videoData.mediaType = "slideshow";
-		}
+      if (!videoData.isSlideshow) {
+        videoData.isSlideshow = true;
+        videoData.mediaType = "slideshow";
+      }
 
-		setButton(videoData, button);
-	});
+      setButton(videoData, button);
+    });
 
     DOM.setStyle(item, { position: "relative" });
     item.appendChild(button);
@@ -2412,28 +2452,28 @@ itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
     // Also check for photo links in the item
     const hasPhotoLink = item.querySelector('a[href*="/photo/"]');
 
-	if (videoPreview || slideshowPreview || hasPhotoLink) {
-		if (!feedGetActionBar(item, data)) {
-			return;
-		}
+    if (videoPreview || slideshowPreview || hasPhotoLink) {
+      if (!feedGetActionBar(item, data)) {
+        return;
+      }
 
-		const videoData = itemData.get(item, data);
-		const feedLink = item.querySelector('a[href*="/photo/"]');
-		if (!videoData.postUrl && feedLink) {
-			const rawHref = feedLink.getAttribute("href") || feedLink.href || "";
-			try {
-				videoData.postUrl = new URL(
-					rawHref,
-					rawHref.startsWith("http") ? undefined : window.location.origin
-				).href;
-			} catch (error) {
-				pipe("⚠️ FEED mode - Failed to normalise URL", {
-					rawHref,
-					error,
-				});
-			}
-		}
-		const button = createButton.FEED();
+      const videoData = itemData.get(item, data);
+      const feedLink = item.querySelector('a[href*="/photo/"]');
+      if (!videoData.postUrl && feedLink) {
+        const rawHref = feedLink.getAttribute("href") || feedLink.href || "";
+        try {
+          videoData.postUrl = new URL(
+            rawHref,
+            rawHref.startsWith("http") ? undefined : window.location.origin
+          ).href;
+        } catch (error) {
+          pipe("⚠️ FEED mode - Failed to normalise URL", {
+            rawHref,
+            error,
+          });
+        }
+      }
+      const button = createButton.FEED();
 
       if ((videoData.url || videoData.isSlideshow) && !button.ttIsProcessed) {
         const feedId = feedExtractVideoId(item);
@@ -2506,77 +2546,77 @@ itemSetup.setters[TTDB.MODE.GRID] = (item, data) => {
         )}px`,
       });
 
-		const videoData = itemData.get(item, data);
-		if (!videoData.postUrl) {
-			videoData.postUrl = window.location.href;
-		}
+      const videoData = itemData.get(item, data);
+      if (!videoData.postUrl) {
+        videoData.postUrl = window.location.href;
+      }
 
-		if (!videoData.isSlideshow) {
-			pipe("⏭️ BASIC_PLAYER mode - skipping non-slideshow media");
-			button.parentNode?.parentNode?.removeChild(button.parentNode);
-			item.removeAttribute("is-downloadable");
-			return;
-		}
+      if (!videoData.isSlideshow) {
+        pipe("⏭️ BASIC_PLAYER mode - skipping non-slideshow media");
+        button.parentNode?.parentNode?.removeChild(button.parentNode);
+        item.removeAttribute("is-downloadable");
+        return;
+      }
 
-		if (!button.ttIsProcessed) {
-			button.parentNode.style.display = "inherit";
-			setTimeout(() => (button.style.opacity = "1"), 50);
-			downloadHook(button, videoData);
-			button.ttIsProcessed = true;
-		}
+      if (!button.ttIsProcessed) {
+        button.parentNode.style.display = "inherit";
+        setTimeout(() => (button.style.opacity = "1"), 50);
+        downloadHook(button, videoData);
+        button.ttIsProcessed = true;
+      }
     }
   };
 
-itemSetup.setters[TTDB.MODE.SHARE_OVERLAY] = (item, _) => {
-  const input = item.querySelector('input[value*="/photo/"]');
-  if (!input) {
-    return false;
-  }
-
-  const rawValue = input.getAttribute("value") || "";
-  const matches = EXPR.vanillaVideoUrl(rawValue, { strict: true });
-
-  if (!matches) {
-    return false;
-  }
-
-  item.setAttribute("is-downloadable", "true");
-
-  const [, username, videoId] = matches;
-  let button = createButton.BASIC_PLAYER();
-
-  item.prepend(button);
-
-  button.classList.add("share");
-  button = button.querySelector("a");
-  button.parentNode.style.display = "block";
-
-  setTimeout(() => (button.style.opacity = "1"), 50);
-
-  let normalizedUrl = rawValue;
-  if (normalizedUrl && !normalizedUrl.startsWith("http")) {
-    try {
-      normalizedUrl = new URL(normalizedUrl, window.location.origin).href;
-    } catch (error) {
-      pipe("⚠️ SHARE_OVERLAY - Failed to normalise URL", {
-        rawValue,
-        error,
-      });
+  itemSetup.setters[TTDB.MODE.SHARE_OVERLAY] = (item, _) => {
+    const input = item.querySelector('input[value*="/photo/"]');
+    if (!input) {
+      return false;
     }
-  }
 
-  downloadHook(button, {
-    id: videoId,
-    videoApiId: videoId,
-    user: username,
-    url: "",
-    isSlideshow: true,
-    mediaType: "slideshow",
-    postUrl: normalizedUrl || window.location.href,
-  });
+    const rawValue = input.getAttribute("value") || "";
+    const matches = EXPR.vanillaVideoUrl(rawValue, { strict: true });
 
-  return true;
-};
+    if (!matches) {
+      return false;
+    }
+
+    item.setAttribute("is-downloadable", "true");
+
+    const [, username, videoId] = matches;
+    let button = createButton.BASIC_PLAYER();
+
+    item.prepend(button);
+
+    button.classList.add("share");
+    button = button.querySelector("a");
+    button.parentNode.style.display = "block";
+
+    setTimeout(() => (button.style.opacity = "1"), 50);
+
+    let normalizedUrl = rawValue;
+    if (normalizedUrl && !normalizedUrl.startsWith("http")) {
+      try {
+        normalizedUrl = new URL(normalizedUrl, window.location.origin).href;
+      } catch (error) {
+        pipe("⚠️ SHARE_OVERLAY - Failed to normalise URL", {
+          rawValue,
+          error,
+        });
+      }
+    }
+
+    downloadHook(button, {
+      id: videoId,
+      videoApiId: videoId,
+      user: username,
+      url: "",
+      isSlideshow: true,
+      mediaType: "slideshow",
+      postUrl: normalizedUrl || window.location.href,
+    });
+
+    return true;
+  };
 
   /**
    * Set up item (get data, create download button and hooks)
