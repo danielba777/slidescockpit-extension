@@ -1,9 +1,9 @@
 {
   "name": "SlidesCockpit - Slideshow Saver",
   "description": "One Click Saving Slideshows to your SlidesCockpit Account",
-  "author": "emy",
+  "author": "slidescockpit",
   "manifest_version": 3,
-  "version": "1.2.2",
+  "version": "1.0.0",
   "homepage_url": "https://slidescockpit.com",
   "icons": {
     "48": "48.png",
