@@ -27,7 +27,75 @@ const options = {
 		type: 'text',
 		default: false,
 		current: null
+	},
+	'slidescockpit-extension-token': {
+		type: 'text',
+		default: '',
+		current: null
 	}
+};
+
+const EXTENSION_TOKEN_KEY = 'slidescockpit-extension-token';
+const SLIDESCOCKPIT_HOSTS = [
+	'slidescockpit.com',
+	'www.slidescockpit.com',
+];
+const SLIDESCOCKPIT_LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
+const SLIDESCOCKPIT_LOCAL_PORTS = new Set(['', '3000', null, undefined]);
+
+const getLocalSetting = (key) => {
+	return new Promise((resolve) => {
+		chrome.storage.local.get(key, (result) => {
+			if (chrome.runtime.lastError) {
+				console.warn('[TTDB] Failed to get storage value', {
+					key,
+					error: chrome.runtime.lastError.message
+				});
+				resolve(null);
+				return;
+			}
+
+			if (result && result.hasOwnProperty(key)) {
+				resolve(result[key]);
+				return;
+			}
+
+			resolve(null);
+		});
+	});
+};
+
+const isSlidescockpitApiRequest = (rawUrl) => {
+	let parsed = null;
+
+	try {
+		parsed = new URL(rawUrl);
+	} catch (_) {
+		return false;
+	}
+
+	const { hostname, protocol, port } = parsed;
+
+	if (hostname && SLIDESCOCKPIT_HOSTS.includes(hostname)) {
+		return protocol === 'https:' || protocol === 'http:';
+	}
+
+	if (hostname && SLIDESCOCKPIT_LOCAL_HOSTS.has(hostname)) {
+		return SLIDESCOCKPIT_LOCAL_PORTS.has(port);
+	}
+
+	return false;
+};
+
+const getExtensionToken = async () => {
+	const stored = await getLocalSetting(EXTENSION_TOKEN_KEY);
+
+	if (typeof stored === 'string') {
+		const trimmed = stored.trim();
+		return trimmed.length ? trimmed : null;
+	}
+
+	return null;
 };
 
 /** Active download sessions */
@@ -125,15 +193,70 @@ const windowOpen = (args) => {
 const serviceFetch = async (args) => {
 	const url = args.data.url;
 	const options = args.data.options || {};
+	const requestOptions = {
+		...options,
+		headers: {
+			...(options.headers || {})
+		}
+	};
 
-	return fetch(url, options).then((response) => {
-		return response.json();
-	}).then((data) => {
-		args.sendResponse({ data: data, error: false });
-	}).catch((error) => {
+	if (isSlidescockpitApiRequest(url) && !requestOptions.headers.Authorization) {
+		const token = await getExtensionToken();
+
+		if (token) {
+			requestOptions.headers.Authorization = `Bearer ${token}`;
+		}
+	}
+
+	try {
+		const response = await fetch(url, requestOptions);
+		const status = response.status;
+		const contentType = response.headers.get('content-type') || '';
+		let data = null;
+
+		if (contentType.includes('application/json')) {
+			data = await response.json();
+		} else {
+			data = await response.text();
+		}
+
+		if (!response.ok) {
+			const errorPayload =
+				data && typeof data === 'object'
+					? data
+					: { message: typeof data === 'string' ? data : null };
+
+			args.sendResponse({
+				data,
+				status,
+				error: {
+					status,
+					message:
+						(errorPayload && (errorPayload.error || errorPayload.message)) ||
+						`Request failed with status ${status}`,
+					body: errorPayload,
+				},
+			});
+			return;
+		}
+
+		args.sendResponse({
+			data,
+			status,
+			error: null,
+		});
+	} catch (error) {
 		console.info('Caught a fetching error:', error);
-		args.sendResponse({ data: null, error: error });
-	})
+		args.sendResponse({
+			data: null,
+			status: 0,
+			error: {
+				status: 0,
+				message: error instanceof Error ? error.message : 'Request failed',
+				body: error,
+			},
+		});
+	}
 };
 
 /**

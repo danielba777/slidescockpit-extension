@@ -259,6 +259,42 @@
     return null;
   };
 
+  const EXTENSION_TOKEN_KEY = "slidescockpit-extension-token";
+
+  const getExtensionToken = async () => {
+    const stored = await getStoredSetting(EXTENSION_TOKEN_KEY);
+
+    if (typeof stored === "string") {
+      const trimmed = stored.trim();
+      return trimmed.length ? trimmed : null;
+    }
+
+    return null;
+  };
+
+  TTDB.extensionToken = await getExtensionToken();
+  pipe("🔐 Extension token loaded", {
+    hasToken: !!TTDB.extensionToken,
+  });
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== "local") {
+      return;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(changes, EXTENSION_TOKEN_KEY)) {
+      const value = changes[EXTENSION_TOKEN_KEY].newValue;
+      TTDB.extensionToken =
+        typeof value === "string" && value.trim().length
+          ? value.trim()
+          : null;
+
+      pipe("🔐 Extension token updated", {
+        hasToken: !!TTDB.extensionToken,
+      });
+    }
+  });
+
   /** Matches `https://www.tiktok.com/@user/video/123456789` URLs */
   EXPR.vanillaVideoUrl = (haystack, options = {}) => {
     let expression =
@@ -2017,68 +2053,91 @@
     }
 
     if (!button.hasListener) {
-      button.addEventListener("click", async (e) => {
-        e.preventDefault();
-        button.classList.add("loading");
+		button.addEventListener("click", async (e) => {
+			e.preventDefault();
+			button.classList.add("loading");
 
-        const postUrl = button.dataset.postUrl;
+			const postUrl = button.dataset.postUrl;
+			const extensionToken = TTDB.extensionToken;
 
-        if (!postUrl) {
-          pipe("⚠️ Slideshow import aborted - missing post URL", {
-            videoData,
-          });
-          SPLASH.message("✘ Unable to retrieve slideshow link", {
-            duration: 4000,
-            state: 3,
-          });
-          button.classList.remove("loading");
-          return;
-        }
+			if (!postUrl) {
+				pipe("⚠️ Slideshow import aborted - missing post URL", {
+					videoData,
+				});
+				SPLASH.message("✘ Unable to retrieve slideshow link", {
+					duration: 4000,
+					state: 3,
+				});
+				button.classList.remove("loading");
+				return;
+			}
 
-        try {
-          const response = await new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage(
-              {
-                task: "fetch",
-                url: "https://slidescockpit.com/api/apify/from-url",
-                options: {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({ url: postUrl }),
-                },
-              },
-              (reply) => {
-                if (chrome.runtime.lastError) {
-                  reject(chrome.runtime.lastError);
-                  return;
-                }
-                resolve(reply);
-              }
-            );
-          });
+			if (!extensionToken) {
+				pipe("⚠️ Slideshow import aborted - missing extension token");
+				SPLASH.message(
+					"✘ Missing SlidesCockpit token. Open the extension settings to add it.",
+					{
+						duration: 4000,
+						state: 3,
+					},
+				);
+				button.classList.remove("loading");
+				return;
+			}
 
-          if (response?.error) {
-            throw response.error;
-          }
+			try {
+				const response = await new Promise((resolve, reject) => {
+					chrome.runtime.sendMessage(
+						{
+							task: "fetch",
+							url: "https://slidescockpit.com/api/apify/from-url",
+							options: {
+								method: "POST",
+								headers: {
+									"Content-Type": "application/json",
+									Authorization: `Bearer ${extensionToken}`,
+								},
+								body: JSON.stringify({ url: postUrl }),
+							},
+						},
+						(reply) => {
+							if (chrome.runtime.lastError) {
+								reject(chrome.runtime.lastError);
+								return;
+							}
+							resolve(reply);
+						}
+					);
+				});
 
-          SPLASH.message("📸 Slideshow imported", {
-            duration: 2500,
-            state: 1,
-          });
-          applyBrowserButtonLabel(button.dataset.confirmedLabel || "✓");
-        } catch (error) {
-          console.error("Failed to send slideshow import request", error);
-          SPLASH.message("✘ Slideshow import failed", {
-            duration: 4000,
-            state: 3,
-          });
-          applyBrowserButtonLabel(button.dataset.originalLabel || "+");
-        } finally {
-          button.classList.remove("loading");
-        }
-      });
+				if (response?.error) {
+					const message =
+						typeof response.error?.message === "string"
+							? response.error.message
+							: "Slideshow import failed";
+					throw new Error(message);
+				}
+
+				SPLASH.message("📸 Slideshow import started", {
+					duration: 2500,
+					state: 1,
+				});
+				applyBrowserButtonLabel(button.dataset.confirmedLabel || "✓");
+			} catch (error) {
+				console.error("Failed to send slideshow import request", error);
+				const errorMessage =
+					error instanceof Error && error.message
+						? error.message
+						: "Slideshow import failed";
+				SPLASH.message(`✘ ${errorMessage}`, {
+					duration: 4000,
+					state: 3,
+				});
+				applyBrowserButtonLabel(button.dataset.originalLabel || "+");
+			} finally {
+				button.classList.remove("loading");
+			}
+		});
 
       button.hasListener = true;
     }

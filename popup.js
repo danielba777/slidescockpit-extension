@@ -65,10 +65,15 @@ window.addEventListener('DOMContentLoaded', async () => {
 			/** Detect checked change */
 			(['change', 'keydown', 'paste', 'input']).forEach((event) => {
 				element.addEventListener(event, (e) => {
-					let newValue = e.target.value.trim()
-						.replace(/\\/g, '/') // Replace `\` with `/`
-						.replace(/\/+/g, '/') // Remove duplicate slashes
-						.replace(/^\//, ''); // Remove leading slashes
+					const rawValue = e.target.value;
+					let newValue = rawValue.trim();
+
+					if (key !== 'slidescockpit-extension-token') {
+						newValue = newValue
+							.replace(/\\/g, '/') // Replace `\` with `/`
+							.replace(/\/+/g, '/') // Remove duplicate slashes
+							.replace(/^\//, ''); // Remove leading slashes
+					}
 
 					options[key].current = newValue;
 				});
