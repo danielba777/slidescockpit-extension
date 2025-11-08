@@ -107,6 +107,42 @@ body > div.content div.textbox-container input
     width: calc(100% - 18px);
 }
 
+body > div.content div.textbox-container button#saveBtn
+{
+    transition: background 0.3s, transform 0.2s;
+    -webkit-transition: background 0.3s, transform 0.2s;
+    -moz-transition: background 0.3s, transform 0.2s;
+    -o-transition: background 0.3s, transform 0.2s;
+
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #2588ec, #3aa1ff);
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+}
+
+body > div.content div.textbox-container button#saveBtn:hover
+{
+    transform: translateY(-1px);
+}
+
+body > div.content div.textbox-container button#saveBtn:active
+{
+    transform: translateY(0);
+    background: linear-gradient(135deg, #1f78d1, #3496f9);
+}
+
+body > div.content div.textbox-container button#saveBtn:focus-visible
+{
+    outline: 2px solid rgba(255, 145, 77, 0.6);
+    outline-offset: 2px;
+}
+
 body > div.content div.textbox-container input:focus,
 body > div.content div.textbox-container input:focus-visible
 {
