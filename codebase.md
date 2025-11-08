@@ -1,3 +1,501 @@
+# .ff_requires/manifest.json
+
+```json
+{
+  "name": "SlidesCockpit - Slideshow Saver",
+  "description": "One Click Saving Slideshows to your SlidesCockpit Account",
+  "author": "SlidesCockpit",
+  "manifest_version": 3,
+  "version": "1.0.1",
+  "icons": {
+    "48": "48.png",
+    "128": "128.png"
+  },
+
+  "background": {
+    "service_worker": "service.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.tiktok.com/*", "https://tiktok.com/*"],
+      "js": ["main.js"],
+      "css": ["main.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "permissions": ["storage"]
+}
+
+```
+
+# .gitignore
+
+```
+.firefox
+.chrome
+ff_port-*
+*.zip
+
+```
+
+# 48.png
+
+This is a binary file of the type: Image
+
+# 128.png
+
+This is a binary file of the type: Image
+
+# extension.zip
+
+This is a binary file of the type: Compressed Archive
+
+# main.css
+
+```css
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap");
+
+a.ttdb__button_feed > div > svg {
+  transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+  -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+  -moz-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+  -o-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+}
+
+a.ttdb__button_feed,
+a.ttdb__button_grid,
+a.ttdb__button_basic-player {
+  transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+  -webkit-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+  -moz-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+  -o-transition: background-color 0.35s, color 0.35s, opacity 1s !important;
+
+  cursor: not-allowed;
+  opacity: 0;
+  outline: none;
+}
+
+a.ttdb__button_browser {
+  position: absolute;
+  top: -17px;
+  right: -10px;
+  padding: 5px 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border-radius: 100px;
+  text-align: center;
+  display: block;
+  font-size: 18px;
+  pointer-events: none;
+  position: relative;
+  background-color: #fe2c55 !important;
+}
+
+a.ttdb__button_browser:hover {
+  text-decoration: none;
+}
+
+a.ttdb__button_browser.loading {
+  color: transparent !important;
+}
+
+a.ttdb__button_browser.loading::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  display: block;
+  content: "";
+  background: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='%23ffffff' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") no-repeat center center !important;
+  background-size: contain;
+}
+
+a.ttdb__button_feed.loading,
+a.ttdb__button_grid.loading,
+a.ttdb__button_basic-player.loading,
+a.ttdb__button_browser.loading {
+  cursor: progress !important;
+}
+
+a.ttdb__button_grid.loading > span::after {
+  content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='white' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
+}
+
+a.ttdb__button_browser[ttdb_mode="__NEXT"] {
+  margin-bottom: 10px !important;
+  margin-top: -12px !important;
+  padding: 4px 8px 6px 8px !important;
+}
+
+a.ttdb__button_browser[ttdb_mode="APP"] {
+  margin: 10px 0px 10px 0px !important;
+}
+
+a.ttdb__button_feed {
+  text-align: center;
+  width: 48px;
+  height: 48px;
+  line-height: 48px;
+  border-radius: 100%;
+  font-size: 1.5em;
+  margin-bottom: 14px;
+}
+
+a.ttdb__button_feed {
+  padding: 0;
+  position: relative;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  cursor: pointer;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  display: none;
+}
+
+a.ttdb__button_feed:hover {
+  color: #fe4569;
+}
+
+a.ttdb__button_feed.loading > div {
+  display: none !important;
+}
+
+a.ttdb__button_feed.loading::after {
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: center center;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 6px;
+
+  content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgb(254, 69, 105)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E");
+}
+
+a.ttdb__button_grid {
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  right: 2px;
+  background-color: #eb4034;
+  border-radius: 4px;
+  color: #fff !important;
+  display: none;
+  box-shadow: 0 0 4px rgb(0 0 0 / 50%);
+  backdrop-filter: blur(2px);
+}
+
+a.ttdb__button_grid > span {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  height: 24px;
+  line-height: 24px;
+  width: 18px;
+}
+
+a.ttdb__button_feed > div {
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: center center;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+a.ttdb__button_feed > div > svg {
+  fill: currentColor;
+  width: 55%;
+  margin-left: 1px;
+  margin-top: -1px;
+}
+
+a.ttdb__button_grid:not(.loading) > span::after {
+  content: "\01F853";
+  font-size: 16px !important;
+}
+
+a.ttdb__button_grid.loading > span::after {
+  margin-left: -2px;
+}
+
+a.ttdb__button_slideshow {
+  opacity: 1 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  position: relative;
+}
+
+a.ttdb__button_slideshow::before {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  font-size: 12px;
+  background: rgba(254, 44, 85, 0.9);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.ttdb__actions-fallback {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 999999;
+  pointer-events: none;
+}
+
+.ttdb__actions-fallback a {
+  pointer-events: auto;
+}
+
+.ttdb__button_browser_wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+a.ttdb__button_feed:hover > div > svg {
+  color: #fe4569 !important;
+}
+
+a.ttdb__button_grid:hover {
+  background-color: #000000b5;
+  color: #00ff80 !important;
+  text-decoration: none;
+}
+
+div.ttdb__button_basic-player_wrapper {
+  margin: 18px auto 10px auto;
+  display: none;
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player {
+  padding: 8px 10px 6px 10px;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+  display: inline-block;
+  text-decoration: none;
+  position: relative;
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player,
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:visited {
+  color: rgba(254, 44, 85, 1);
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player:hover {
+  background-color: rgba(254, 44, 85, 0.15) !important;
+}
+
+div.ttdb__button_basic-player_wrapper > a.ttdb__button_basic-player::after {
+  content: "🡓";
+  position: absolute;
+  left: 10px;
+  font-size: 20px;
+  top: 4px;
+}
+
+div.ttdb__button_basic-player_wrapper
+  > a.ttdb__button_basic-player.loading::after {
+  content: url("data:image/svg+xml,%3Csvg width='24' height='24' version='1.1' id='L9' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 100 100' enable-background='new 0 0 0 0' xml:space='preserve'%3E%3Cpath fill='rgba(254, 44, 85, 1.0)' d='M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50'%3E%3CanimateTransform attributeName='transform' attributeType='XML' type='rotate' dur='1s' from='0 50 50' to='360 50 50' repeatCount='indefinite' /%3E%3C/path%3E%3C/svg%3E") !important;
+  top: 6px !important;
+  left: 6px !important;
+}
+
+div.ttdb__button_basic-player_wrapper.share,
+div.ttdb__button_basic-player_wrapper.share > a {
+  width: 100%;
+}
+
+div.ttdb__button_basic-player_wrapper.share {
+  margin: 0 auto 10px;
+  text-align: center;
+}
+
+div.ttdb__button_basic-player_wrapper.share > a {
+  width: 90%;
+}
+
+body > div.ttdb_downloading-active > div.item,
+body > div.ttdb_splash-wrapper {
+  font-family: "Noto Sans JP", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+body > div.ttdb_splash-wrapper {
+  transition: opacity 0.35s !important;
+  -webkit-transition: opacity 0.35s !important;
+  -moz-transition: opacity 0.35s !important;
+  -o-transition: opacity 0.35s !important;
+
+  position: fixed;
+  top: 0px;
+  right: 30px;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+body > div.ttdb_splash-wrapper > div.ttdb_splash-content {
+  width: auto;
+  margin: 10px auto;
+  padding: 5px 10px 3px 10px;
+  display: inline-block;
+  text-align: center;
+  border-radius: 2px;
+  color: #fff;
+  cursor: pointer;
+  font-feature-settings: "tnum";
+  backdrop-filter: blur(2px);
+  letter-spacing: 1px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  font-size: 0.9em;
+}
+
+body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-success {
+  background-color: #3300ff42;
+  color: #fff;
+}
+
+body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-warn {
+  background-color: rgb(255 200 0);
+  color: #000000;
+}
+
+body > div.ttdb_splash-wrapper > div.ttdb_splash-content.state-error {
+  background-color: #ff0000c7;
+  color: #fff;
+}
+
+button.extract {
+  pointer-events: none !important;
+}
+
+button.extract div[class*="-DivContainer "] {
+  display: none !important;
+}
+
+body > div.ttdb_downloading-active {
+  position: fixed;
+  inset: auto 4px 4px auto;
+  z-index: 99999;
+
+  pointer-events: none;
+  display: flex;
+  justify-content: end;
+  gap: 6px;
+}
+
+body > div.ttdb_downloading-active > div.item {
+  background-color: #000000bf;
+  padding: 9px 8px 4px 8px;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 1s;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+
+  flex: 0 1 auto;
+  max-width: 20vw;
+}
+
+body > div.ttdb_downloading-active > div.item > div.progress {
+  background-color: #00ff66;
+  min-width: 0px;
+  max-width: 100%;
+  min-height: 3px;
+  max-height: 2px;
+  display: inline-block;
+  position: absolute;
+  inset: 0 auto auto 0;
+  transition: width 0.1s;
+}
+
+/* Light mode colors */
+
+html:not([data-theme]) body > div.ttdb_downloading-active > div.item,
+html:not([data-theme="dark"]) body > div.ttdb_downloading-active > div.item,
+html[data-theme="light"] body > div.ttdb_downloading-active > div.item {
+  color: #fff;
+}
+
+html:not([data-theme]) a.ttdb__button_feed,
+html:not([data-theme="dark"]) a.ttdb__button_feed,
+html[data-theme="light"] a.ttdb__button_feed {
+  background-color: rgb(0 0 0 / 10%);
+  color: #000;
+}
+
+html:not([data-theme]) a.ttdb__button_feed svg,
+html:not([data-theme="dark"]) a.ttdb__button_feed svg,
+html[data-theme="light"] a.ttdb__button_feed svg {
+  color: #161823;
+}
+
+html:not([data-theme]) a.ttdb__button_browser,
+html:not([data-theme="dark"]) a.ttdb__button_browser,
+html[data-theme="light"] a.ttdb__button_browser {
+  background-color: #f1f1f2;
+  color: #000;
+}
+
+html:not([data-theme]) a.ttdb__button_feed:hover > div > svg,
+html:not([data-theme="dark"]) a.ttdb__button_feed:hover > div > svg,
+html[data-theme="light"] a.ttdb__button_feed:hover > div > svg {
+  color: #fe2c55 !important;
+}
+
+/* Dark mode colors */
+
+html[data-theme="dark"] a.ttdb__button_feed {
+  background-color: rgb(255 255 255 / 10%);
+  color: #fff;
+}
+
+html[data-theme="dark"] a.ttdb__button_feed svg {
+  color: #fff;
+}
+
+html[data-theme="dark"] a.ttdb__button_browser {
+  background-color: rgb(41, 41, 41);
+  color: #fff;
+}
+
+```
+
+# main.js
+
+```js
 (async () => {
   const TTDB = {},
     API = {},
@@ -2954,3 +3452,891 @@
 
   pipe("✅ Extension initialized with URL change detection");
 })();
+
+```
+
+# manifest.json
+
+```json
+{
+  "name": "SlidesCockpit - Slideshow Saver",
+  "description": "One Click Saving Slideshows to your SlidesCockpit Account",
+  "author": "SlidesCockpit",
+  "manifest_version": 3,
+  "version": "1.0.1",
+  "icons": {
+    "48": "48.png",
+    "128": "128.png"
+  },
+
+  "background": {
+    "service_worker": "service.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.tiktok.com/*", "https://tiktok.com/*"],
+      "js": ["main.js"],
+      "css": ["main.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "permissions": [
+    "storage"
+  ],
+
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
+
+```
+
+# popup.css
+
+```css
+body
+{
+    color: #a3a3a3;
+    background-color: #000000;
+    border: 2px solid #181818;
+    margin: 0px;
+    position: relative;
+    width: 320px;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    font-size: 75%;
+    overflow: hidden;
+}
+
+body > div#version,
+body > a#website
+{
+    visibility: hidden;
+    color: #9f9f9f;
+}
+
+body > div#version
+{
+    position: absolute;
+    top: 1px;
+    right: 4px;
+    pointer-events: none;
+}
+
+body > a#website
+{
+    transition: color 0.3s;
+    -webkit-transition: color 0.3s;
+    -moz-transition: color 0.3s;
+    -o-transition: color 0.3s;
+
+    position: absolute;
+    top: 2px;
+    left: 4px;
+}
+
+body > a#website:hover
+{
+    color: #666666;
+}
+
+body a.link
+{
+    color: #d3d3d3;
+    transition: color 0.3s;
+    -webkit-transition: color 0.3s;
+    -moz-transition: color 0.3s;
+    -o-transition: color 0.3s;
+}
+
+body a.link:hover
+{
+    color: #fff;
+}
+
+body > div.header
+{
+    user-select: none;
+    text-align: center;
+    letter-spacing: 1px;
+    display: block;
+    color: #d7d7d7;
+    width: 320px;
+    padding: 10px 4px 10px 4px;
+    border-bottom: 1px solid #1e1e1e;
+    background-color: #181818;
+    font-size: 1.1em;
+}
+
+body > div.content
+{
+    padding: 10px;
+}
+
+body > div.content > div.category-divide
+{
+    user-select: none;
+    background-color: #181818;
+    color: #ffffff;
+    border-top: 2px solid #272727;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #272727;
+    padding: 2px 0px 4px 10px;
+    margin: 14px -12px 8px -12px;
+    font-size: 1.1em;
+}
+
+body > div.content div.textbox-container input
+{
+    transition: border 0.3s;
+    -webkit-transition: border 0.3s;
+    -moz-transition: border 0.3s;
+    -o-transition: border 0.3s;
+
+    font-family: Consolas, monospace;
+    border: 1px solid #2e2e2e;
+    background-color: #000000;
+    border-radius: 3px;
+    margin-top: 10px;
+    display: block;
+    padding: 6px 8px;
+    color: #ffffff;
+    width: calc(100% - 18px);
+}
+
+body > div.content div.textbox-container input:focus,
+body > div.content div.textbox-container input:focus-visible
+{
+    border: 1px solid #424242;
+    outline: none;
+}
+
+body > div.content div.checkbox-container:not(:first-child)
+{
+    margin-top: 10px;
+}
+
+body > div.content div.checkbox-container > span
+{
+    padding-left: 22px;
+    color: #6c6c6c;
+}
+
+body > div.content div.checkbox-container label
+{
+    display: block;
+    padding-right: 10px;
+    padding-left: 22px;
+    text-indent: -22px;
+    cursor: pointer;
+    margin-bottom: 4px;
+
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+body > div.content div.checkbox-container input
+{
+    vertical-align: middle;
+}
+
+body > div.content div.checkbox-container label > span
+{
+    vertical-align: middle;
+    font-size: 110%;
+}
+
+body > button#settings-save
+{
+    transition: background-color 0.3s, color 0.3s;
+    -webkit-transition: background-color 0.3s, color 0.3s;
+    -moz-transition: background-color 0.3s, color 0.3s;
+    -o-transition: background-color 0.3s, color 0.3s;
+
+    background-color: #181818;
+    color: #fff;
+    margin: 4px;
+    border-radius: 2px;
+    cursor: pointer;
+    display: block;
+    border: none;
+    color: #b8b8b8;
+    padding: 5px 10px;
+    width: calc(100% - 8px);
+}
+
+body > button#settings-save:hover
+{
+    background-color: #2a2733;
+    color: #fff;
+}
+```
+
+# popup.html
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="popup.css">
+    <script src='popup.js'></script>
+</head>
+<body>
+    <div class="header">SlidesCockpit - Slideshow Saver</div>
+
+    <div class="content">
+        <div class="category-divide">Personal Token</div>
+
+        <div class="textbox-container">
+            <span>Paste your personal SlidesCockpit token. Find it in the dashboard under Account &rarr; Chrome Extension.</span>
+            <input type="text" id="tokenInput" placeholder="Enter token here" />
+            <button id="saveBtn">Save</button>
+        </div>
+    </div>
+
+    <div id="version"></div><a href="#" id="website" target="_blank">Website</a>
+</body>
+</html>
+
+```
+
+# popup.js
+
+```js
+document.addEventListener('DOMContentLoaded', () => {
+const input = document.getElementById('tokenInput');
+const saveBtn = document.getElementById('saveBtn');
+
+// Laden des gespeicherten Tokens
+chrome.storage.local.get(['slidescockpit-extension-token'], (result) => {
+if (result['slidescockpit-extension-token']) {
+input.value = result['slidescockpit-extension-token'];
+}
+});
+
+saveBtn.addEventListener('click', () => {
+const token = input.value.trim();
+if (!token) {
+alert('Please enter the token');
+return;
+}
+chrome.storage.local.set({ "slidescockpit-extension-token": token }, () => {
+if (chrome.runtime.lastError) {
+console.error('Error saving token:', chrome.runtime.lastError);
+alert('Failed to save token. See console.');
+} else {
+console.log('Token saved');
+alert('Token saved successfully');
+window.close(); // oder Feedback geben
+}
+});
+});
+});
+```
+
+# port.sh
+
+```sh
+#!/bin/bash
+
+###########################################################
+# Ports the Chrome extension to become Firefox compatible.#
+###########################################################
+
+TIMESTAMP=$(date +'%d_%m_%Y_%H-%M-%N')
+OUTPUT="ff_port-$TIMESTAMP"
+
+declare -a REQUIRES=(
+    '48.png'
+    '128.png'
+    'main.css'
+    'main.js'
+    'popup.html'
+    'popup.css'
+    'popup.js'
+    'service.js'
+)
+
+declare -a HAYSTACK=(
+    'chrome.runtime'
+    'chrome.storage'
+    'chrome.downloads'
+    'chrome.tabs'
+)
+
+declare -a REPLACE=(
+    'browser.runtime'
+    'browser.storage'
+    'browser.downloads'
+    'browser.tabs'
+)
+
+mkdir "$OUTPUT"
+
+cp "./.ff_requires/manifest.json" "./$OUTPUT/manifest.json"
+
+for FILE in "${REQUIRES[@]}"
+do
+    cp "./$FILE" "./$OUTPUT/$FILE"
+
+    if [[ $FILE == *".js"  ||  $FILE == *".html" ]]
+    then
+        echo "Processing: $FILE"
+        INDEX=0
+
+        for SEARCH in "${HAYSTACK[@]}"
+        do
+            while IFS= read -r LINE || [ -n "$LINE" ]
+            do
+                echo "${LINE//$SEARCH/${REPLACE[INDEX]}}"
+            done < "./$OUTPUT/$FILE" > "./$OUTPUT/temp_$FILE"
+
+            rm "./$OUTPUT/$FILE"
+            mv "./$OUTPUT/temp_$FILE" "./$OUTPUT/$FILE"
+
+            ((INDEX=INDEX+1))
+        done
+    fi
+done
+```
+
+# README.md
+
+```md
+<p align="center">
+  <img src="./128.png">
+</p>
+
+<h1 align="center">TikTok Download Buttons</h1>
+
+<p align="center">An addon that adds download buttons to the web version of TikTok</p>
+
+---
+
+I made this mostly for my own needs, but it's also published here:
+
+* [Chrome Web Store](https://chrome.google.com/webstore/detail/tiktok-download-buttons/kcnchleajedobajlpgkcinfcdmdnfejd)
+
+* [Add-ons for Firefox](https://addons.mozilla.org/en-US/firefox/addon/tiktok-download-buttons/)
+
+---
+
+## Watermarks
+
+This addon will _attempt_ to use the API to download videos without the watermark. This may not always work because TikTok can change how this works and block the way of downloading.
+
+By default it'll prioritize downloading from the API, but this can be turned off in the settings. If the addon detects that the API isn't responding correctly, it'll revert back to the fallbacks (with watermarks) and it'll try again with the API at a later time.
+
+Once the API has failed, there will be a short "cooldown" for when it attempts to use it again. This cooldown can be reset by simply opening the menu and saving your options, or you can wait 15 minutes.
+
+## Not working?
+
+TikTok is known for changing their site often, something that may break the addon from time to time. If it isn't working, feel free to submit an issue (or a PR with a fix), and I'll look into it.
+
+Keeping this addon updated is a priority as long as it's feasible.
+```
+
+# ruleset.json
+
+```json
+[{
+    "id": 1, 
+    "priority": 1, 
+    "action": {
+       "type": "modifyHeaders", 
+       "requestHeaders": [{
+            "header": "User-Agent",
+            "operation": "set",
+            "value": "Mozilla/5.0 (Linux; Android 10; SM-G973F Build/QQ3A.200805.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/85.0.4183.101 Mobile Safari/537.36 trill_2021806060 JsSdk/1.0 NetType/WIFI Channel/googleplay AppName/musical_ly app_version/18.6.6 ByteLocale/fr ByteFullLocale/fr Region/FR"
+        },
+        {
+            "header": "Sec-Fetch-Dest",
+            "operation": "set",
+            "value": "document"
+        },
+        {
+            "header": "Sec-Fetch-Mode",
+            "operation": "set",
+            "value": "navigate"
+        },
+        {
+            "header": "Sec-Fetch-Site",
+            "operation": "set",
+            "value": "cross-site"
+        },
+        {
+            "header": "referer",
+            "operation": "remove"
+        },
+        {
+            "header": "origin",
+            "operation": "remove"
+        }
+        ]
+    },
+    "condition": {
+        "urlFilter": "*://api22-normal-c-useast2a.tiktokv.com/*",
+        "resourceTypes": ["main_frame", "xmlhttprequest"]
+    }
+}]
+```
+
+# service.js
+
+```js
+/**
+ * The method `chrome.downloads.download` does not work with the option:
+ *      "Ask where to save each file before downloading" enabled.
+ * If the option is disabled (chrome://settings/downloads), this feature will work fine.
+ * 
+ * This is an issue with the actual chrome API (only MV3, not MV2) — see:
+ *      [https://bugs.chromium.org/p/chromium/issues/detail?id=1173497]
+ *      [https://bugs.chromium.org/p/chromium/issues/detail?id=1246717]
+ * 
+ * Anyways...
+ *      This method is prioritized because it's very useful if it works, but fallbacks are needed.
+ */
+
+/** Default options for the addon to use */
+const options = {
+	'download-fallback-tab-focus': {
+		type: 'toggle',
+		default: true,
+		current: null
+	},
+	'download-subfolder-path': {
+		type: 'text',
+		default: false,
+		current: null
+	},
+	'download-naming-template': {
+		type: 'text',
+		default: false,
+		current: null
+	},
+	'slidescockpit-extension-token': {
+		type: 'text',
+		default: '',
+		current: null
+	}
+};
+
+const EXTENSION_TOKEN_KEY = 'extensionToken';
+const SLIDESCOCKPIT_HOSTS = [
+	'slidescockpit.com',
+	'www.slidescockpit.com',
+];
+const SLIDESCOCKPIT_LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
+const SLIDESCOCKPIT_LOCAL_PORTS = new Set(['', '3000', null, undefined]);
+
+const getLocalSetting = (key) => {
+	return new Promise((resolve) => {
+		chrome.storage.local.get(key, (result) => {
+			if (chrome.runtime.lastError) {
+				console.warn('[TTDB] Failed to get storage value', {
+					key,
+					error: chrome.runtime.lastError.message
+				});
+				resolve(null);
+				return;
+			}
+
+			if (result && result.hasOwnProperty(key)) {
+				resolve(result[key]);
+				return;
+			}
+
+			resolve(null);
+		});
+	});
+};
+
+const isSlidescockpitApiRequest = (rawUrl) => {
+	let parsed = null;
+
+	try {
+		parsed = new URL(rawUrl);
+	} catch (_) {
+		return false;
+	}
+
+	const { hostname, protocol, port } = parsed;
+
+	if (hostname && SLIDESCOCKPIT_HOSTS.includes(hostname)) {
+		return protocol === 'https:' || protocol === 'http:';
+	}
+
+	if (hostname && SLIDESCOCKPIT_LOCAL_HOSTS.has(hostname)) {
+		return SLIDESCOCKPIT_LOCAL_PORTS.has(port);
+	}
+
+	return false;
+};
+
+const getExtensionToken = async () => {
+	const stored = await getLocalSetting(EXTENSION_TOKEN_KEY);
+
+	if (typeof stored === 'string') {
+		const trimmed = stored.trim();
+		return trimmed.length ? trimmed : null;
+	}
+
+	return null;
+};
+
+/** Active download sessions */
+globalThis.downloadSessions = globalThis.downloadSessions || new Map();
+
+/** Set default storage values */
+Object.keys(options).forEach((key) => {
+	chrome.storage.local.get(key, (result) => {
+		if (result && !result.hasOwnProperty(key)) {
+			let value = new Object();
+			value[key] = options[key].default;
+			chrome.storage.local.set(value);
+		}
+	});
+});
+
+/**
+ * Options getter
+ */
+const optionsGet = (args) => {
+	return args.sendResponse(options);
+};
+
+/**
+ * Attempts to download a file using `browser.downloads.download`
+ * 
+ * @param {object} args 
+ */
+const fileDownload = async (args) => {
+	let [filename, url, subFolder] = [
+		args.data.filename,
+		args.data.url,
+		args.data.subFolder
+	];
+
+	if (subFolder && subFolder.length > 1 && !subFolder.endsWith('/')) {
+		subFolder = subFolder + '/';
+	}
+
+	try {
+		console.log('[TTDB]', 'Attempting download', {
+			filename: `${subFolder ? subFolder : ''}${filename}`, url: url
+		});
+
+		chrome.downloads.download({
+			conflictAction: 'uniquify',
+			filename: `${subFolder ? subFolder : ''}${filename}`,
+			url: url,
+			...(url.startsWith('http') && { method: 'GET' }),
+			saveAs: false
+		}, (itemId) => {
+			chrome.downloads.onChanged.addListener((delta) => {
+				if (itemId === delta.id) {
+					console.log('[TTDB]', delta);
+
+					if (delta.endTime || (delta.state && delta.state.current === 'complete')) {
+						args.sendResponse({ itemId: itemId, success: true }); // Successful download
+					} else if (delta.error) {
+						args.sendResponse({ success: false, error: delta.error });
+					}
+				}
+			});
+		});
+	} catch (error) {
+		args.sendResponse({ success: false, error });
+	}
+};
+
+/**
+ * Opens the default download folder
+ */
+const showDefaultFolder = () => {
+	chrome.downloads.showDefaultFolder();
+};
+
+/**
+ * Opens a new tab in Chrome
+ * 
+ * @param {object} args 
+ */
+const windowOpen = (args) => {
+	chrome.tabs.create({
+		url: args.data.url,
+		active: args.data.active ? args.data.active : false
+	}, () => { // May wanna handle errors here, not a priority for now however
+		args.sendResponse({ success: true });
+	});
+};
+
+/**
+ * Fetching function
+ * 
+ * @param {object} args 
+ */
+const serviceFetch = async (args) => {
+	const url = args.data.url;
+	const options = args.data.options || {};
+	const requestOptions = {
+		...options,
+		headers: {
+			...(options.headers || {})
+		}
+	};
+
+	if (isSlidescockpitApiRequest(url) && !requestOptions.headers.Authorization) {
+		const token = await getExtensionToken();
+
+		if (token) {
+			requestOptions.headers.Authorization = `Bearer ${token}`;
+		}
+	}
+
+	try {
+		const response = await fetch(url, requestOptions);
+		const status = response.status;
+		const contentType = response.headers.get('content-type') || '';
+		let data = null;
+
+		if (contentType.includes('application/json')) {
+			data = await response.json();
+		} else {
+			data = await response.text();
+		}
+
+		if (!response.ok) {
+			const errorPayload =
+				data && typeof data === 'object'
+					? data
+					: { message: typeof data === 'string' ? data : null };
+
+			args.sendResponse({
+				data,
+				status,
+				error: {
+					status,
+					message:
+						(errorPayload && (errorPayload.error || errorPayload.message)) ||
+						`Request failed with status ${status}`,
+					body: errorPayload,
+				},
+			});
+			return;
+		}
+
+		args.sendResponse({
+			data,
+			status,
+			error: null,
+		});
+	} catch (error) {
+		console.info('Caught a fetching error:', error);
+		args.sendResponse({
+			data: null,
+			status: 0,
+			error: {
+				status: 0,
+				message: error instanceof Error ? error.message : 'Request failed',
+				body: error,
+			},
+		});
+	}
+};
+
+/**
+ * `onMessage` listener
+ */
+chrome.runtime.onMessage.addListener((data, sender, sendResponse) => {
+	// Task IDs and their corresponding methods
+	const tasks = {
+		'fileDownload': fileDownload,
+		'windowOpen': windowOpen,
+		'fileShow': showDefaultFolder,
+		'optionsGet': optionsGet,
+		'fetch': serviceFetch
+	};
+
+	if (tasks[data.task]) {
+		tasks[data.task]({ // Perform task
+			data,
+			sender,
+			sendResponse
+		});
+	}
+
+	return true;
+});
+
+```
+
+# TEMPLATE.md
+
+```md
+<h1 align="center">Templating</h1>
+<p align="center">This page contains the current available templating options.</p>
+
+## Usage
+You can edit the naming template in the options menu of the addon (*pin it, then click on it*).
+
+This only works when utilizing the API because the available data from non-API requests isn't sufficient enough to cover templating.
+
+Example usage:
+
+* `video_{uploader}_{uploaded_s}` → `video_randomusername_20230101_000000.mp4`
+* `tiktokVideo_{nickname}_{desc}-{id}` → `tiktokVideo_Random Username_This is a description-7217247845525540139.mp4`
+
+## Options
+
+### `{uploader}`
+* Uploader username (their `tiktok.com/@ID`)
+
+### `{nickname}`
+* Uploader display name
+
+### `{signature}`
+* Uploader signature (usually their profile description)
+
+### `{uid}`
+* Uploader ID
+
+### `{desc}`
+* Video description
+
+### `{id}`
+* Video ID
+
+### `{region}`
+* Video region  (**PS: This may not work correctly as of May 2024**)
+
+### `{language}`
+* Video language  (**PS: This may not work correctly as of May 2024**)
+
+### `{uploaded}`
+* A unix timestamp of when the video was uploaded
+
+### `{uploaded_s}`
+* A **readable** timestamp of when the video was uploaded
+
+### `{timestamp}`
+* A unix timestamp of when the video was downloaded
+
+### `{timestamp_s}`
+* A **readable** timestamp of when the video was downloaded
+
+```
+
+# TO_DO.md
+
+```md
+Ich hab’s: Dein Content-Script lädt den Token nur einmal aus chrome.storage.local und hört nur auf Änderungen im local-Bereich. Wenn dein Popup den Token (wie es oft vorkommt) in sync speichert oder unter einem anderen Key, sieht das Content-Script die Änderung nie. Zusätzlich holst du den Token im Klick-Handler nicht noch einmal frisch — dadurch bleibt TTDB.extensionToken leer ⇒ „Missing SlidesCockpit Token“.
+
+3 konkrete Ursachen im Code 1. Nur local, kein sync-Fallback
+In main.js:
+• getStoredSetting/getExtensionToken lesen nur chrome.storage.local.
+• chrome.storage.onChanged prüft areaName !== "local" und ignoriert sync. 2. Kein Re-Read beim Klick
+Im downloadHook klick-Handler wird nur TTDB.extensionToken geprüft. Wenn das Content-Script vor dem Speichern geladen wurde (oder das onChanged nicht feuert), bleibt’s null. 3. Key-Mismatch möglich
+Dein Code erwartet genau den Key
+slidescockpit-extension-token.
+Wenn dein Popup einen anderen Key verwendet (z. B. extensionToken), findet main.js nichts.
+
+Minimaler Fix (robust, ohne Architekturumbau)
+
+Füge diese Änderungen in main.js ein: 1. Universelles Lesen (local → sync-Fallback)
+
+const EXTENSION_TOKEN_KEY = "slidescockpit-extension-token";
+
+const getExtensionToken = async () => {
+// 1) local
+try {
+const local = await chrome.storage.local.get(EXTENSION*TOKEN_KEY);
+const v1 = local?.[EXTENSION_TOKEN_KEY];
+if (typeof v1 === "string" && v1.trim()) return v1.trim();
+} catch (*) {}
+
+// 2) sync (Fallback)
+try {
+const sync = await chrome.storage.sync.get(EXTENSION*TOKEN_KEY);
+const v2 = sync?.[EXTENSION_TOKEN_KEY];
+if (typeof v2 === "string" && v2.trim()) return v2.trim();
+} catch (*) {}
+
+return null;
+};
+
+    2.	Auf beide Storage-Bereiche hören
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+if ((areaName === "local" || areaName === "sync") &&
+Object.prototype.hasOwnProperty.call(changes, EXTENSION_TOKEN_KEY)) {
+const v = changes[EXTENSION_TOKEN_KEY].newValue;
+TTDB.extensionToken = (typeof v === "string" && v.trim()) ? v.trim() : null;
+pipe("🔐 Extension token updated", { hasToken: !!TTDB.extensionToken, areaName });
+}
+});
+
+    3.	Im Klick-Handler frisch nachladen (Fallback)
+
+Suche im downloadHook den Klick-Handler und ersetze den Token-Zugriff so:
+
+button.addEventListener("click", async (e) => {
+e.preventDefault();
+button.classList.add("loading");
+
+const postUrl = button.dataset.postUrl;
+
+// Fallback: token frisch laden, falls Cache leer/stale
+let extensionToken = TTDB.extensionToken || (await getExtensionToken());
+
+if (!postUrl) {
+// ...
+button.classList.remove("loading");
+return;
+}
+
+if (!extensionToken) {
+// ...
+button.classList.remove("loading");
+return;
+}
+
+// ... Request mit Authorization: Bearer ${extensionToken}
+});
+
+Prüfliste (damit es 100%ig greift)
+• Stelle sicher, dass dein Popup exakt unter dem Key
+slidescockpit-extension-token speichert:
+
+chrome.storage.local.set({ "slidescockpit-extension-token": token });
+
+(Oder wenn du sync bevorzugst, dann ändere das Content-Script wie oben, damit es beide Bereiche unterstützt.)
+
+    •	Öffne auf einer TikTok-Seite die DevTools-Konsole (Content-Script-Kontext) und teste:
+
+chrome.storage.local.get("slidescockpit-extension-token", console.log);
+chrome.storage.sync.get("slidescockpit-extension-token", console.log);
+
+Einer der beiden sollte den gespeicherten Token zeigen.
+
+    •	Nach Re-Install / ID-Wechsel: Token neu speichern (anderes ID ⇒ anderer Storage-Namespace).
+
+Mit diesen drei Code-Änderungen verschwindet „Missing SlidesCockpit Token“ zuverlässig, selbst wenn das Popup sync nutzt oder das Content-Script vor dem Speichern geladen wurde.
+
+```
+
+# zip.sh
+
+```sh
+#!/bin/bash
+
+7z a "tiktok-download-buttons.zip" 48.png 128.png main.css main.js manifest.json popup.css popup.html popup.js service.js ruleset.json
+
+```
+

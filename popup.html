@@ -1,22 +1,22 @@
 <!DOCTYPE html>
-    <head>
-        <link rel="stylesheet" href="popup.css"> 
-        <script src='popup.js'></script>
-    </head>
-    <body>
-        <div class="header">SlidesCockpit - Slideshow Saver</div>
+<html>
+<head>
+    <link rel="stylesheet" href="popup.css">
+    <script src='popup.js'></script>
+</head>
+<body>
+    <div class="header">SlidesCockpit - Slideshow Saver</div>
 
-        <div class="content">
-            <div class="category-divide">Personal Token</div>
+    <div class="content">
+        <div class="category-divide">Personal Token</div>
 
-            <div class="textbox-container">
-                <span>Paste your personal SlidesCockpit token. Find it in the dashboard under Account &rarr; Chrome Extension.</span>
-                <input type="text" spellcheck="false" autocomplete="off" id="slidescockpit-extension-token" placeholder="Paste token here">
-            </div>
+        <div class="textbox-container">
+            <span>Paste your personal SlidesCockpit token. Find it in the dashboard under Account &rarr; Chrome Extension.</span>
+            <input type="text" id="tokenInput" placeholder="Enter token here" />
+            <button id="saveBtn">Save</button>
         </div>
+    </div>
 
-        <button id="settings-save">Save</button>
-
-        <div id="version"></div><a href="#" id="website" target="_blank">Website</a>
-    </body>
+    <div id="version"></div><a href="#" id="website" target="_blank">Website</a>
+</body>
 </html>

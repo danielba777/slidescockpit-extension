@@ -22,5 +22,11 @@
     }
   ],
 
-  "permissions": ["storage"]
+  "permissions": ["storage"],
+
+  "host_permissions": ["https://slidescockpit.com/*"],
+
+  "action": {
+    "default_popup": "popup.html"
+  }
 }

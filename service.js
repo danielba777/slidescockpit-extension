@@ -35,7 +35,7 @@ const options = {
 	}
 };
 
-const EXTENSION_TOKEN_KEY = 'slidescockpit-extension-token';
+const EXTENSION_TOKEN_KEY = 'extensionToken';
 const SLIDESCOCKPIT_HOSTS = [
 	'slidescockpit.com',
 	'www.slidescockpit.com',
